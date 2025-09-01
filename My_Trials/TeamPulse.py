@@ -1,11 +1,12 @@
-# JIRA.py
+# TeamPulse.py
 # =============================================================================
 # README
 # =============================================================================
 # TeamPulse — Lightweight Team Kanban & Utilization Tracker
 #
 # Run:
-#   python JIRA.py
+#   Create your .env file
+#   python TeamPulse.py
 #
 # Requirements:
 #   - Python 3.9+
@@ -53,6 +54,10 @@ import matplotlib.pyplot as plt
 import gradio as gr
 
 import glob
+
+from dotenv import load_dotenv
+load_dotenv()   # this loads variables from .env into os.environ
+
 # --------------------------
 # Constants & file locations
 # --------------------------
@@ -70,7 +75,9 @@ PRIORITIES = ["P1", "P2", "P3", "P4"]
 
 # Optional: let teams override data root via env if you later want a shared data dir
 # (keep your existing DATA_DIR; this only adds an inbox alongside it)
-INBOX_DIR = os.getenv("KANBAN_INBOX_DIR", os.path.join(DATA_DIR, "_inbox"))
+INBOX_DIR = os.path.expandvars(os.path.expanduser(
+    os.getenv("KANBAN_INBOX_DIR", os.path.join(DATA_DIR, "_inbox"))
+))
 PROCESSED_DIR = os.path.join(INBOX_DIR, "processed")
 
 
@@ -162,6 +169,18 @@ def _safe_int(x, default=0) -> int:
         return int(x)
     except Exception:
         return default
+
+def _task_label_choices(df: pd.DataFrame | None = None):
+    """Labels like '123 — Build Kanban UI' for add-log dropdowns."""
+    t = load_tasks() if df is None else df
+    t = t[~t["is_deleted"]]
+    return [f"{r.task_id} — {r.title}" for _, r in t.iterrows()]
+
+def _task_id_choices(df: pd.DataFrame | None = None):
+    """Plain task_id list for edit forms."""
+    t = load_tasks() if df is None else df
+    t = t[~t["is_deleted"]]
+    return [int(r.task_id) for _, r in t.iterrows()]
 
 
 #--------------------------------------------------------------------
@@ -1196,7 +1215,7 @@ def build_ui():
         if first_seed:
             gr.Info("Sample data created under ./data/ — happy building!")
 
-        gr.Markdown(f"## 🧭 {APP_NAME}\nSimple Kanban + time tracking + reports for a 5-person team. Data lives in `./data/`.")
+        gr.Markdown(f"## 🧭 {APP_NAME}\nSimple Kanban + time tracking + reports for a small team. Data lives in `./data/`.")
 
         with gr.Tabs():
             # -------------------------
@@ -1313,15 +1332,20 @@ def build_ui():
                 add_task_btn = gr.Button("Add Task", variant="primary")
                 add_task_msg = gr.Markdown()
 
-                def add_task_cb(*args):
-                    msg, tbl = action_add_task(*args)
-                    return msg, tbl
+                # def add_task_cb(*args):
+                #     msg, tbl = action_add_task(*args)
+                #     return msg, tbl
 
-                add_task_btn.click(
-                    add_task_cb,
-                    inputs=[t_title, t_desc, t_assignee, t_status, t_priority, t_est, t_created, t_due, t_tags, t_deps],
-                    outputs=[add_task_msg, tasks_table]
-                )
+                # add_task_btn.click(
+                #     add_task_cb,
+                #     inputs=[t_title, t_desc, t_assignee, t_status, t_priority, t_est, t_created, t_due, t_tags, t_deps],
+                #     outputs=[add_task_msg, tasks_table]
+                # )
+
+                # --- replace existing add_task_cb + click with this version ---
+
+                
+
 
                 gr.Markdown("### Edit / Delete Task")
                 task_pick = gr.Dropdown(choices=[int(r.task_id) for _, r in load_tasks()[~load_tasks()["is_deleted"]].iterrows()],
@@ -1377,29 +1401,31 @@ def build_ui():
                     outputs=[edit_task_msg, e_title, e_assignee, e_status, e_priority, e_est, e_created, e_due, e_tags, e_deps, e_desc]
                 )
 
-                def save_edit():
-                    msg, tbl = action_edit_task(
-                        task_pick.value, e_title.value, e_desc.value, e_assignee.value, e_status.value,
-                        e_priority.value, e_est.value, e_created.value, e_due.value, e_tags.value, e_deps.value
-                    )
-                    # refresh task id dropdown too
-                    ids = [int(r.task_id) for _, r in load_tasks()[~load_tasks()["is_deleted"]].iterrows()]
-                    return msg, tbl, gr.update(choices=ids)
+                # def save_edit():
+                #     msg, tbl = action_edit_task(
+                #         task_pick.value, e_title.value, e_desc.value, e_assignee.value, e_status.value,
+                #         e_priority.value, e_est.value, e_created.value, e_due.value, e_tags.value, e_deps.value
+                #     )
+                #     # refresh task id dropdown too
+                #     ids = [int(r.task_id) for _, r in load_tasks()[~load_tasks()["is_deleted"]].iterrows()]
+                #     return msg, tbl, gr.update(choices=ids)
 
-                save_edit_btn.click(
-                    save_edit,
-                    outputs=[edit_task_msg, tasks_table, task_pick]
-                )
+                # save_edit_btn.click(
+                #     save_edit,
+                #     outputs=[edit_task_msg, tasks_table, task_pick]
+                # )
+                # --- replace save_edit() with this version ---
 
-                def del_task():
-                    msg, tbl = action_delete_task(task_pick.value)
-                    ids = [int(r.task_id) for _, r in load_tasks()[~load_tasks()["is_deleted"]].iterrows()]
-                    return msg, tbl, gr.update(choices=ids, value=None)
+                # def del_task():
+                #     msg, tbl = action_delete_task(task_pick.value)
+                #     ids = [int(r.task_id) for _, r in load_tasks()[~load_tasks()["is_deleted"]].iterrows()]
+                #     return msg, tbl, gr.update(choices=ids, value=None)
 
-                delete_task_btn.click(
-                    del_task,
-                    outputs=[edit_task_msg, tasks_table, task_pick]
-                )
+                # delete_task_btn.click(
+                #     del_task,
+                #     outputs=[edit_task_msg, tasks_table, task_pick]
+                # )
+                # --- replace del_task() with this version ---
 
             # -------------------------
             # Time Logs Tab
@@ -1415,12 +1441,13 @@ def build_ui():
                 tl_note = gr.Textbox(label="Note", lines=2)
                 add_log_btn = gr.Button("Add Log", variant="primary")
                 add_log_msg = gr.Markdown()
-
+                refresh_task_lists_btn = gr.Button("Refresh Tasks")
                 recent_logs = gr.Dataframe(
                     value=load_logs()[~load_logs()["is_deleted"]].sort_values("date", ascending=False).head(20),
                     label="Recent Logs",
                     interactive=False
                 )
+                
 
                 def add_log_cb(task_label, member_name, d, h, note):
                     if not task_label:
@@ -1788,6 +1815,77 @@ def build_ui():
                 Configure shared folder via env var `KANBAN_INBOX_DIR` (e.g., a network share).
                 """)
 
+                # For syncing tasks real time.
+                # --- Place this AFTER tl_task, task_select, task_pick, el_task are defined ---
+
+                def add_task_cb(*args):
+                    msg, tbl = action_add_task(*args)
+                    # Refresh all task-related dropdowns
+                    return (
+                        msg,
+                        tbl,
+                        gr.update(choices=_task_label_choices()),   # tl_task
+                        gr.update(choices=_task_label_choices()),   # task_select (Kanban quick edit)
+                        gr.update(choices=_task_id_choices()),      # task_pick (Tasks -> Edit)
+                        gr.update(choices=_task_id_choices()),      # el_task (Time Logs -> Edit)
+                    )
+
+                add_task_btn.click(
+                    add_task_cb,
+                    inputs=[t_title, t_desc, t_assignee, t_status, t_priority, t_est, t_created, t_due, t_tags, t_deps],
+                    outputs=[add_task_msg, tasks_table, tl_task, task_select, task_pick, el_task]
+                )
+
+                def save_edit():
+                    msg, tbl = action_edit_task(
+                        task_pick.value, e_title.value, e_desc.value, e_assignee.value, e_status.value,
+                        e_priority.value, e_est.value, e_created.value, e_due.value, e_tags.value, e_deps.value
+                    )
+                    ids = _task_id_choices()
+                    return (
+                        msg,
+                        tbl,
+                        gr.update(choices=ids),                   # task_pick
+                        gr.update(choices=_task_label_choices()), # tl_task
+                        gr.update(choices=_task_label_choices()), # task_select
+                        gr.update(choices=ids),                   # el_task
+                    )
+
+                save_edit_btn.click(
+                    save_edit,
+                    outputs=[edit_task_msg, tasks_table, task_pick, tl_task, task_select, el_task]
+                )
+
+                def del_task():
+                    msg, tbl = action_delete_task(task_pick.value)
+                    ids = _task_id_choices()
+                    labels = _task_label_choices()
+                    return (
+                        msg,
+                        tbl,
+                        gr.update(choices=ids, value=None),  # task_pick
+                        gr.update(choices=labels),           # tl_task
+                        gr.update(choices=labels),           # task_select
+                        gr.update(choices=ids, value=None),  # el_task
+                    )
+
+                delete_task_btn.click(
+                    del_task,
+                    outputs=[edit_task_msg, tasks_table, task_pick, tl_task, task_select, el_task]
+                )
+
+                def _refresh_task_lists():
+                    return (
+                        gr.update(choices=_task_label_choices()),  # tl_task
+                        gr.update(choices=_task_id_choices()),     # el_task
+                    )
+
+                refresh_task_lists_btn.click(_refresh_task_lists, outputs=[tl_task, el_task])
+
+
+
+
+
                 # Who's pushing? (used in filename) — defaults to OS username if available
                 try:
                     _default_user = os.getlogin()
@@ -1812,7 +1910,7 @@ def build_ui():
                 push_btn.click(do_push, inputs=[inbox_user], outputs=[inbox_msg])
                 pull_btn.click(do_pull, outputs=[inbox_msg, inbox_preview])
 
-                        # -------------------------
+            # -------------------------
             # Help / Overview Tab
             # -------------------------
             with gr.Tab("Help / Overview"):
@@ -1873,43 +1971,90 @@ def build_ui():
 
                 ---
 
+                ## 📊 Understanding Reports
+
+                **Utilization by Member**  
+                - Shows % of logged hours vs. available capacity.  
+                - Formula: `sum(hours_logged) / (weekly_capacity * days/7) * 100`.  
+                - Use to balance workload; capacity is pro-rated for partial weeks.
+
+                **Heatmap (Member × Week)**  
+                - Visualizes weekly logged hours per member.  
+                - Darker cells = heavier load. Spot imbalances quickly.
+
+                **Burndown (Remaining Hours)**  
+                - Tracks remaining effort for tasks due in the selected window.  
+                - Good = steady decline; Flat = stalled; Spikes = scope change.
+
+                **Throughput**  
+                - Tasks moved to *Done* per week.  
+                - Shows delivery pace and trend.
+
+                **Cycle Time**  
+                - Days from *Created → Done* (toggle to exclude weekends).  
+                - Lower is better; investigate long outliers.
+
+                **WIP Count by Day**  
+                - Number of active tasks (not Done) daily.  
+                - Helps monitor flow; too high WIP = slower cycle times.
+
+                **Quick Pivots**  
+                - Snap summaries by status, priority, tag, assignee.  
+                - Useful for triage and spotting hot spots.
+
+                ✅ **Tips for accurate reports:**  
+                - Always set **Due Dates** on tasks you want in burndown.  
+                - Log hours **frequently** (daily preferred).  
+                - Refresh reports after imports or edits.  
+                - Don’t edit CSVs manually while the app is running.
+
+                ---
+
                 ## 🛠️ Advanced Notes
 
                 - **Data Schemas**  
-                  * members.csv → `member_id, name, role, weekly_capacity_hours, is_deleted`  
-                  * tasks.csv → `task_id, title, description, assignee_id, status, priority, estimate_hours, created_at, due_date, tags, dependencies, is_deleted`  
-                  * time_logs.csv → `log_id, task_id, member_id, date, hours_spent, note, is_deleted`
+                * members.csv → `member_id, name, role, weekly_capacity_hours, is_deleted`  
+                * tasks.csv → `task_id, title, description, assignee_id, status, priority, estimate_hours, created_at, due_date, tags, dependencies, is_deleted`  
+                * time_logs.csv → `log_id, task_id, member_id, date, hours_spent, note, is_deleted`
 
                 - **IDs & References**  
-                  * Members and tasks are referenced by numeric IDs.  
-                  * Names can change safely because joins always use IDs.  
-                  * Dependencies in tasks are stored as comma-separated task IDs.
+                * Members and tasks are referenced by numeric IDs.  
+                * Names can change safely because joins always use IDs.  
+                * Dependencies in tasks are stored as comma-separated task IDs.
 
                 - **Validation Rules**  
-                  * Task estimates must be ≥ 0.  
-                  * Time logs must be > 0 hours.  
-                  * Due date must be ≥ created date.  
-                  * Dependencies must point to valid task IDs.
+                * Task estimates must be ≥ 0.  
+                * Time logs must be > 0 hours.  
+                * Due date must be ≥ created date.  
+                * Dependencies must point to valid task IDs.
 
                 - **Persistence**  
-                  * Every CRUD operation saves directly to CSV.  
-                  * “Soft delete” sets `is_deleted=True` instead of removing rows.  
-                  * Reports always recompute from current CSVs on refresh.
+                * Every CRUD operation saves directly to CSV.  
+                * “Soft delete” sets `is_deleted=True` instead of removing rows.  
+                * Reports always recompute from current CSVs on refresh.
 
                 - **Concurrency**  
-                  * Multiple people editing the same CSV at the same time can conflict.  
-                  * For shared use, run TeamPulse on a single host and let teammates connect via LAN (`server_name="0.0.0.0"`).  
-                  * Alternatively, use the **Shared Inbox** feature in Admin to merge time logs from multiple machines.
+                * Multiple people editing the same CSV at the same time can conflict.  
+                * For shared use, run TeamPulse on a single host and let teammates connect via LAN (`server_name="0.0.0.0"`).  
+                * Alternatively, use the **Shared Inbox** feature in Admin to merge time logs from multiple machines.
 
                 - **Extensibility**  
-                  * You can swap CSV persistence with SQLite/Postgres by replacing the load/save helpers.  
-                  * The Reports tab already isolates calculations into functions (`compute_utilization`, `burndown_series`, etc.), making it easy to extend.  
-                  * The UI is modular (each tab is self-contained), so you can add new tabs or metrics without touching the core.
+                * You can swap CSV persistence with SQLite/Postgres by replacing the load/save helpers.  
+                * The Reports tab already isolates calculations into functions (`compute_utilization`, `burndown_series`, etc.), making it easy to extend.  
+                * The UI is modular (each tab is self-contained), so you can add new tabs or metrics without touching the core.
 
                 ---
+
                 ✅ **Tip for Team Leads:** Run {APP_NAME} on one machine with `server_name="0.0.0.0"` so everyone shares the same board.  
-                ✅ **Tip for Tech Users:** Back up the CSVs in `./data/` or version them in Git to keep history.
+                ✅ **Tip for Tech Users:** Back up the CSVs in `./data/` or version them in Git to keep history.  
+
+                ---
+
+                <div style="text-align:center; color:blue">
+                    Created with the help of GPT5 by <b>Jyotendra</b>
+                </div>
                 """)
+
 
 
 

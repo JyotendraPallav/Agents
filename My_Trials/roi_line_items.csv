@@ -1,0 +1,19 @@
+Section,Item,Basis,Amount
+Value,Time Savings / Productivity,Users × Hours/week × 52 × $/hour,"USD 41,600"
+Value,Process Cost Reduction,% efficiency × Process Annual Cost,"USD 40,000"
+Value,Headcount Avoidance,FTEs avoided × FTE cost,"USD 360,000"
+Value,Error Reduction / Compliance,Errors avoided × $/error,USD 0
+Value,Revenue Uplift / Growth,% sales lift × Baseline sales,USD 0
+Value,Earlier Revenue Capture,Months accelerated × Monthly revenue,USD 0
+Build,Team Effort (FTE-months) – auto,"4 × 12,000 × 4","USD 192,000"
+Build,Technology Licenses (one-time),Input,USD 500
+Build,Data Preparation (one-time),Input,"USD 2,000"
+Build,Integration / Infra Setup (one-time),Input,USD 0
+Build,Training / Change Mgmt (one-time),Input,USD 0
+Build,Other (Consulting / Vendor),Input,"USD 15,000"
+Operate,Cloud / Infra (annual) – auto,Cloud monthly × 12,"USD 96,000"
+Operate,LLM/API (annual) – auto,1K calls × $/1K × estimated '000 calls,"USD 2,000,000"
+Operate,Support & Maintenance (FTEs) – auto,Support FTEs × FTE Cost,"USD 180,000"
+Operate,Enhancements (annual) – auto,% of Build × Build Total,"USD 41,900"
+Operate,Training / Onboarding (annual),Input,"USD 10,000"
+Operate,"Other (monitoring, compliance, etc.)",Input,"USD 20,000"
