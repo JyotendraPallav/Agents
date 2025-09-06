@@ -1,0 +1,15 @@
+task_id,title,description,assignee_id,status,priority,estimate_hours,created_at,due_date,tags,dependencies,is_deleted
+1,Define MVP scope,Write PRD and acceptance criteria,1,Done,P2,6.0,2025-08-09,2025-08-16,"planning,prd",,False
+2,Design data model,"Members, Tasks, Logs schemas",4,Done,P1,8.0,2025-08-10,2025-08-20,"data,schemas",1.0,False
+3,Set up persistence,CSV I/O and validators,2,Review,P1,10.0,2025-08-16,2025-08-31,"backend,persistence",2.0,False
+4,Build Kanban UI,Filters & board rendering,3,In-Progress,P2,12.0,2025-08-18,2025-09-02,"frontend,kanban",2.0,False
+5,Time logging form,Add & list logs,5,In-Progress,P3,6.0,2025-08-19,2025-09-01,"frontend,logs",3.0,False
+6,Utilization reports,Capacity & charts,2,Backlog,P1,10.0,2025-08-22,2025-09-06,"reports,utilization",3.0,False
+7,Burndown chart,Remaining hours over time,4,Backlog,P2,8.0,2025-08-22,2025-09-06,"reports,burndown",3.0,False
+8,Throughput metric,Done per week,5,In-Progress,P3,5.0,2025-08-23,2025-09-07,"reports,throughput",,False
+9,Cycle time metric,"Created→Done, ignore weekends toggle",4,Backlog,P3,7.0,2025-08-24,2025-09-08,"reports,cycle",,False
+10,WIP counter,Daily WIP line chart,3,Review,P4,4.0,2025-08-24,2025-09-09,"reports,wip",,False
+11,Import/Export CSV,Schema validation & preview,2,In-Progress,P2,8.0,2025-08-25,2025-09-11,"admin,io",,False
+12,Polish validations,Edge cases & UX toasts,1,Backlog,P2,6.0,2025-08-26,2025-09-11,"quality,validation",,False
+13,Creating TeamPulse,To create TeamPulse for managing Utilization,1,Review,P1,10.0,2025-08-31,2025-09-07,App,,False
+14,Demo,Checkmark,5,Backlog,P3,10.0,2025-09-01,2025-09-08,Timepass,,False
