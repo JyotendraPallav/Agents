@@ -1,0 +1,6 @@
+member_id,name,role,weekly_capacity_hours,is_deleted
+1,Ashu,Manager,40.0,False
+2,Preetij,Lead,40.0,False
+3,Vijay,Lead,32.0,False
+4,Hare,Data Analyst,40.0,False
+5,Siom,QA Engineer,35.0,False

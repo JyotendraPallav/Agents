@@ -1,0 +1,3 @@
+task_id,title,description,assignee_id,status,priority,estimate_hours,created_at,due_date,tags,dependencies,is_deleted,assignee,logged_hours,remaining_hours,assignee_name
+6,Utilization reports,Capacity & charts,2,Backlog,P1,10.0,2025-08-22,2025-09-06,"reports,utilization",3.0,False,Preetij,0.0,10.0,Preetij
+7,Burndown chart,Remaining hours over time,4,Backlog,P2,8.0,2025-08-22,2025-09-06,"reports,burndown",3.0,False,Hare,0.0,8.0,Hare
