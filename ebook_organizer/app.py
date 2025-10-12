@@ -53,26 +53,26 @@ def process_library(folder_path: str):
         yield "\n".join(log)
 
         try:
-            # CORRECTLY UNPACK THE 3 RETURN VALUES
-            metadata, raw_result, crew_logs = get_book_metadata(filename)
+            # Get the new user_friendly_log
+            metadata, raw_result, user_friendly_log = get_book_metadata(filename)
             
-            # Display the captured logs in the UI
-            if crew_logs:
-                log.append(f"🕵️‍♂️ **CrewAI Trace:**\n```\n{crew_logs}\n```")
+            # Display the clean log
+            if user_friendly_log:
+                log.append(user_friendly_log) # It's already formatted with newlines
                 yield "\n".join(log)
 
             if metadata:
                 for col in enriched_cols:
                     df.loc[index, col] = getattr(metadata, col)
-                log.append(f"   👍 Success: Found metadata for '{metadata.title}'")
+                # No need for a separate success message, it's in the log now
             else:
-                log.append(f"   ⚠️ Failed to parse AI output for {filename}. Skipping.")
-                log.append(f"   Raw output: `{raw_result}`")
+                # Failure message is already in the user_friendly_log
+                log.append(f"   Raw output for debugging: `{raw_result}`")
 
             yield "\n".join(log)
 
         except Exception as e:
-            log.append(f"   ❌ An unexpected error occurred for {filename}: {e}. Skipping.")
+            log.append(f"   ❌ An unexpected error occurred: {e}. Skipping.")
             yield "\n".join(log)
             time.sleep(1)
 
@@ -80,7 +80,23 @@ def process_library(folder_path: str):
     log.append("\n📊 **Phase 3: Generating Excel report...**")
     yield "\n".join(log)
     report_path = Path(folder_path) / "AI_Library_Report.xlsx"
-    df.to_excel(report_path, index=False)
+    # Define the exact columns and their order for the report
+    columns_for_report = [
+        'title', 
+        'authors', 
+        'publication_year', 
+        'genre', 
+        'goodreads_rating', 
+        'review_summary', 
+        'series_info',
+        'filename' # Keep original filename for reference
+    ]
+    
+    # Create a new DataFrame with only these columns
+    report_df = df[columns_for_report]
+    
+    # Save the new, clean DataFrame to Excel
+    report_df.to_excel(report_path, index=False)
     log.append(f"   ✅ Report saved to `{report_path}`")
     yield "\n".join(log)
     

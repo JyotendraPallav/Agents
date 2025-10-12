@@ -103,16 +103,13 @@ def create_research_task(filename: str) -> Task:
 
 def get_book_metadata(filename: str) -> (BookMetadata, str, str):
     """
-    Runs the CrewAI agent to get metadata for a book and validates the output.
-
-    Args:
-        filename: The filename of the book to research.
-
+    Runs the CrewAI agent, validates the output, and generates a user-friendly log.
+    ...
     Returns:
         A tuple containing:
         - The validated BookMetadata object (or None on failure).
         - The raw JSON string result from the agent.
-        - The captured logs and traces from the crew's execution.
+        - A user-friendly summary of the crew's execution.
     """
     book_crew = Crew(
         agents=[researcher_agent],
@@ -122,56 +119,58 @@ def get_book_metadata(filename: str) -> (BookMetadata, str, str):
     
     kickoff_output = None
     captured_logs = ""
+    user_friendly_log = []
 
     try:
-        # Create a buffer to capture logs
         log_stream = io.StringIO()
-        
-        # Redirect stdout to capture the verbose logs from the kickoff
         with contextlib.redirect_stdout(log_stream):
             kickoff_output = book_crew.kickoff()
         
-        # Get the logs and print them to the terminal for debugging
         captured_logs = log_stream.getvalue()
-        print(captured_logs)
+        print(captured_logs) # Keep printing full log to terminal for debugging
+
+        # --- NEW: Intelligent Log Parsing ---
+        if "Entering new CrewAgentExecutor chain" in captured_logs:
+            user_friendly_log.append("   ▶️ Agent activated: Starting research...")
+        
+        # Find all search queries the agent made
+        searches = re.findall(r'\"search_query\": \"(.*?)\"', captured_logs)
+        if searches:
+            user_friendly_log.append(f"   🔎 Performing web search for: '{searches[0]}'")
+            if len(searches) > 1:
+                user_friendly_log.append(f"   ...and {len(searches)-1} other searches.")
+        
+        if "Finished chain." in captured_logs:
+            user_friendly_log.append("   ✅ Agent finished: Task completed.")
 
     except Exception as e:
-        # This will now catch the REAL error from kickoff()
-        print("="*80)
-        print(f"A CRITICAL ERROR occurred during crew.kickoff() for file: {filename}")
-        print(f"ERROR: {e}")
-        print("="*80)
-        # Return Nones and the captured logs (which might contain clues)
-        return None, "", captured_logs
+        print(f"A CRITICAL ERROR occurred during crew.kickoff() for file: {filename}\nERROR: {e}")
+        return None, "", f"   ❌ Agent failed during execution: {e}"
 
-    # Proceed only if kickoff was successful
     raw_result = kickoff_output.raw if kickoff_output else ""
 
     if not raw_result:
         print(f"WARNING: Crew kickoff for {filename} produced no output.")
-        return None, "", captured_logs
+        return None, "", "   ⚠️ Agent produced no output."
 
     try:
-        # --- NEW ROBUST JSON EXTRACTION ---
-        # Find the starting '{' of the JSON object
+        # --- ROBUST JSON EXTRACTION ---
         json_start_index = raw_result.find('{')
-        # Find the closing '}' of the JSON object
         json_end_index = raw_result.rfind('}') + 1
 
         if json_start_index != -1 and json_end_index != -1:
-            # Slice the string to get only the JSON part
             json_str = raw_result[json_start_index:json_end_index]
-            
-            # Now, validate the clean JSON string
             metadata = BookMetadata.model_validate_json(json_str)
-            return metadata, json_str, captured_logs
+            
+            # Add extracted info to the user-friendly log
+            user_friendly_log.append(f"   📄 Extracted: '{metadata.title}' by {', '.join(metadata.authors)}")
+            
+            return metadata, json_str, "\n".join(user_friendly_log)
         else:
-            # If no JSON object is found, raise an error
             raise ValueError("No JSON object found in the agent's output.")
         
     except (ValidationError, json.JSONDecodeError, ValueError) as e:
-        print(f"Pydantic Validation or Parsing Error for {filename}: {e}\nRaw output: {raw_result}")
-        return None, raw_result, captured_logs
-    except Exception as e:
-        print(f"An unexpected error occurred during metadata processing for {filename}: {e}")
-        return None, raw_result, captured_logs
+        error_message = f"   ❌ Failed to parse agent's final answer: {e}"
+        print(f"Validation/Parsing Error for {filename}: {e}\nRaw output: {raw_result}")
+        user_friendly_log.append(error_message)
+        return None, raw_result, "\n".join(user_friendly_log)
