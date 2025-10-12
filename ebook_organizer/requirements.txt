@@ -1,0 +1,11 @@
+# Core Libraries
+python-dotenv
+gradio
+pandas
+openpyxl
+
+# AI & Agentic Framework
+crewai
+crewai-tools
+openai
+pydantic

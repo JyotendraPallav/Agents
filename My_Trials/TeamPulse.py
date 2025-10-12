@@ -2065,7 +2065,7 @@ def build_ui():
 # ----------------
 def main():
     ui = build_ui()
-    ui.launch()
+    ui.launch(inbrowser= True)
 
 if __name__ == "__main__":
     main()
