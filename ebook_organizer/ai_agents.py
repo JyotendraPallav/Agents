@@ -51,10 +51,16 @@ def create_research_task(filename: str) -> Task:
     )
 
 # 3. Create a function to run the crew and validate the output
+
 # def get_book_metadata(filename: str) -> (BookMetadata, str, str):
 #     """
-#     Runs the CrewAI agent to get metadata for a book and validates the output.
+#     Runs the CrewAI agent, validates the output, and generates a user-friendly log.
 #     ...
+#     Returns:
+#         A tuple containing:
+#         - The validated BookMetadata object (or None on failure).
+#         - The raw JSON string result from the agent.
+#         - A user-friendly summary of the crew's execution.
 #     """
 #     book_crew = Crew(
 #         agents=[researcher_agent],
@@ -62,115 +68,102 @@ def create_research_task(filename: str) -> Task:
 #         verbose=True
 #     )
     
-#     try:
-#         kickoff_output = book_crew.kickoff()
-#     except Exception as e:
-#         print(f"CRITICAL ERROR during crew kickoff: {e}")
-
-    
-#     kickoff_output = None # Initialize to None
-
-#     # log_stream = io.StringIO()
-#     # with contextlib.redirect_stdout(log_stream):
-#     #     try:
-#     #         # Get the full CrewOutput object
-#     #         kickoff_output = book_crew.kickoff()
-#     #     except Exception as e:
-#     #         print(f"CRITICAL ERROR during crew kickoff: {e}")
-
-#     # captured_logs = log_stream.getvalue()
-#     # print(captured_logs) 
-#     # Extract the raw string from the output object IF it exists
-#     raw_result = kickoff_output.raw if kickoff_output else ""
-    
-
+#     kickoff_output = None
+#     captured_logs = ""
+#     user_friendly_log = []
 
 #     try:
-#         # The rest of the function now works with the extracted raw_result string
-#         if "```json" in raw_result:
-#             json_str = raw_result.split("```json\n")[1].split("```")[0]
-#         else:
-#             json_str = raw_result
+#         log_stream = io.StringIO()
+#         with contextlib.redirect_stdout(log_stream):
+#             kickoff_output = book_crew.kickoff()
         
-#         metadata = BookMetadata.model_validate_json(json_str)
-#         return metadata, json_str, captured_logs
-#     except (ValidationError, json.JSONDecodeError) as e:
-#         print(f"Pydantic Validation Error for {filename}: {e}\nRaw output: {raw_result}")
-#         return None, raw_result, captured_logs
-#     except Exception as e:
-#         print(f"An unexpected error occurred during metadata processing for {filename}: {e}")
-#         return None, raw_result, captured_logs
+#         captured_logs = log_stream.getvalue()
+#         print(captured_logs) # Keep printing full log to terminal for debugging
 
-def get_book_metadata(filename: str) -> (BookMetadata, str, str):
+#         # --- NEW: Intelligent Log Parsing ---
+#         if "Entering new CrewAgentExecutor chain" in captured_logs:
+#             user_friendly_log.append("   ▶️ Agent activated: Starting research...")
+        
+#         # Find all search queries the agent made
+#         searches = re.findall(r'\"search_query\": \"(.*?)\"', captured_logs)
+#         if searches:
+#             user_friendly_log.append(f"   🔎 Performing web search for: '{searches[0]}'")
+#             if len(searches) > 1:
+#                 user_friendly_log.append(f"   ...and {len(searches)-1} other searches.")
+        
+#         if "Finished chain." in captured_logs:
+#             user_friendly_log.append("   ✅ Agent finished: Task completed.")
+
+#     except Exception as e:
+#         print(f"A CRITICAL ERROR occurred during crew.kickoff() for file: {filename}\nERROR: {e}")
+#         return None, "", f"   ❌ Agent failed during execution: {e}"
+
+#     raw_result = kickoff_output.raw if kickoff_output else ""
+
+#     if not raw_result:
+#         print(f"WARNING: Crew kickoff for {filename} produced no output.")
+#         return None, "", "   ⚠️ Agent produced no output."
+
+#     try:
+#         # --- ROBUST JSON EXTRACTION ---
+#         json_start_index = raw_result.find('{')
+#         json_end_index = raw_result.rfind('}') + 1
+
+#         if json_start_index != -1 and json_end_index != -1:
+#             json_str = raw_result[json_start_index:json_end_index]
+#             metadata = BookMetadata.model_validate_json(json_str)
+            
+#             # Add extracted info to the user-friendly log
+#             user_friendly_log.append(f"   📄 Extracted: '{metadata.title}' by {', '.join(metadata.authors)}")
+            
+#             return metadata, json_str, "\n".join(user_friendly_log)
+#         else:
+#             raise ValueError("No JSON object found in the agent's output.")
+        
+#     except (ValidationError, json.JSONDecodeError, ValueError) as e:
+#         error_message = f"   ❌ Failed to parse agent's final answer: {e}"
+#         print(f"Validation/Parsing Error for {filename}: {e}\nRaw output: {raw_result}")
+#         user_friendly_log.append(error_message)
+#         return None, raw_result, "\n".join(user_friendly_log)
+
+def get_book_metadata(filename: str) -> (BookMetadata, str): # <-- Note: Returns 2 items now
     """
-    Runs the CrewAI agent, validates the output, and generates a user-friendly log.
-    ...
-    Returns:
-        A tuple containing:
-        - The validated BookMetadata object (or None on failure).
-        - The raw JSON string result from the agent.
-        - A user-friendly summary of the crew's execution.
+    Runs the CrewAI agent to get metadata for a book and validates the output.
+    Logs will now appear in real-time in the terminal.
     """
     book_crew = Crew(
         agents=[researcher_agent],
         tasks=[create_research_task(filename)],
-        verbose=True
+        verbose=True  # This will now print directly to the terminal in real-time
     )
     
     kickoff_output = None
-    captured_logs = ""
-    user_friendly_log = []
-
     try:
-        log_stream = io.StringIO()
-        with contextlib.redirect_stdout(log_stream):
-            kickoff_output = book_crew.kickoff()
-        
-        captured_logs = log_stream.getvalue()
-        print(captured_logs) # Keep printing full log to terminal for debugging
-
-        # --- NEW: Intelligent Log Parsing ---
-        if "Entering new CrewAgentExecutor chain" in captured_logs:
-            user_friendly_log.append("   ▶️ Agent activated: Starting research...")
-        
-        # Find all search queries the agent made
-        searches = re.findall(r'\"search_query\": \"(.*?)\"', captured_logs)
-        if searches:
-            user_friendly_log.append(f"   🔎 Performing web search for: '{searches[0]}'")
-            if len(searches) > 1:
-                user_friendly_log.append(f"   ...and {len(searches)-1} other searches.")
-        
-        if "Finished chain." in captured_logs:
-            user_friendly_log.append("   ✅ Agent finished: Task completed.")
-
+        # Call kickoff directly. Logs will stream to the console.
+        kickoff_output = book_crew.kickoff()
     except Exception as e:
-        print(f"A CRITICAL ERROR occurred during crew.kickoff() for file: {filename}\nERROR: {e}")
-        return None, "", f"   ❌ Agent failed during execution: {e}"
+        print(f"\nCRITICAL ERROR during crew.kickoff() for file: {filename}\nERROR: {e}\n")
+        return None, ""
 
     raw_result = kickoff_output.raw if kickoff_output else ""
 
     if not raw_result:
         print(f"WARNING: Crew kickoff for {filename} produced no output.")
-        return None, "", "   ⚠️ Agent produced no output."
+        return None, ""
 
     try:
-        # --- ROBUST JSON EXTRACTION ---
+        # Robust JSON extraction
         json_start_index = raw_result.find('{')
         json_end_index = raw_result.rfind('}') + 1
 
         if json_start_index != -1 and json_end_index != -1:
             json_str = raw_result[json_start_index:json_end_index]
             metadata = BookMetadata.model_validate_json(json_str)
-            
-            # Add extracted info to the user-friendly log
-            user_friendly_log.append(f"   📄 Extracted: '{metadata.title}' by {', '.join(metadata.authors)}")
-            
-            return metadata, json_str, "\n".join(user_friendly_log)
+            # Return the metadata and the raw result for debugging in the UI
+            return metadata, raw_result
         else:
             raise ValueError("No JSON object found in the agent's output.")
         
     except (ValidationError, json.JSONDecodeError, ValueError) as e:
-        error_message = f"   ❌ Failed to parse agent's final answer: {e}"
         print(f"Validation/Parsing Error for {filename}: {e}\nRaw output: {raw_result}")
-        user_friendly_log.append(error_message)
-        return None, raw_result, "\n".join(user_friendly_log)
+        return None, raw_result

@@ -55,16 +55,47 @@ def process_library(folder_path: str):
         # app.py -> inside process_library()
 
 # ... (inside the for loop of Phase 2)
-        try:
-            metadata, raw_result, user_friendly_log = get_book_metadata(filename)
+        # try:
+        #     metadata, raw_result, user_friendly_log = get_book_metadata(filename)
             
-            if user_friendly_log:
-                log.append(user_friendly_log)
-                yield "\n".join(log)
+        #     if user_friendly_log:
+        #         log.append(user_friendly_log)
+        #         yield "\n".join(log)
 
+        #     if metadata:
+        #         # --- THIS IS THE DEFINITIVE FIX ---
+        #         # Set each value individually to avoid shape errors with complex objects
+                # df.at[idx, 'title'] = metadata.title
+                # df.at[idx, 'authors'] = metadata.authors
+                # df.at[idx, 'publication_year'] = metadata.publication_year
+                # df.at[idx, 'genre'] = metadata.genre
+                # df.at[idx, 'goodreads_rating'] = metadata.goodreads_rating
+                # df.at[idx, 'review_summary'] = metadata.review_summary
+                
+        #         # Convert Pydantic model to a dict for the DataFrame cell
+        #         if metadata.series_info:
+        #             df.at[idx, 'series_info'] = metadata.series_info.model_dump()
+        #         else:
+        #             df.at[idx, 'series_info'] = None
+        #         # --- END OF FIX ---
+        #     else:
+        #         log.append(f"   Raw output for debugging: `{raw_result}`")
+
+        #     yield "\n".join(log)
+
+        # except Exception as e:
+        #     log.append(f"   ❌ An unexpected error occurred: {e}. Skipping.")
+        #     yield "\n".join(log)
+        #     time.sleep(1)
+        try:
+            # Unpack the new 2-item return value
+            metadata, raw_result = get_book_metadata(filename)
+            
+            # Provide simple status messages directly to the Gradio UI
             if metadata:
-                # --- THIS IS THE DEFINITIVE FIX ---
-                # Set each value individually to avoid shape errors with complex objects
+                log.append(f"   👍 Success: Extracted '{metadata.title}'")
+                
+                # Use .at for robustly setting values
                 df.at[idx, 'title'] = metadata.title
                 df.at[idx, 'authors'] = metadata.authors
                 df.at[idx, 'publication_year'] = metadata.publication_year
@@ -72,13 +103,12 @@ def process_library(folder_path: str):
                 df.at[idx, 'goodreads_rating'] = metadata.goodreads_rating
                 df.at[idx, 'review_summary'] = metadata.review_summary
                 
-                # Convert Pydantic model to a dict for the DataFrame cell
                 if metadata.series_info:
                     df.at[idx, 'series_info'] = metadata.series_info.model_dump()
                 else:
                     df.at[idx, 'series_info'] = None
-                # --- END OF FIX ---
             else:
+                log.append(f"   ⚠️ Agent failed to return valid metadata for {filename}.")
                 log.append(f"   Raw output for debugging: `{raw_result}`")
 
             yield "\n".join(log)
