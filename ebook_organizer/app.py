@@ -47,26 +47,40 @@ def process_library(folder_path: str):
     yield "\n".join(log)
     
     total_books = len(df)
-    for index, row in df.iterrows():
+    for idx, (index, row) in enumerate(df.iterrows()):
         filename = row['filename']
-        log.append(f"\n({index + 1}/{total_books}) Researching: **{filename}**")
+        log.append(f"\n({idx + 1}/{total_books}) Researching: **{filename}**")
         yield "\n".join(log)
 
         try:
-            # Get the new user_friendly_log
             metadata, raw_result, user_friendly_log = get_book_metadata(filename)
             
-            # Display the clean log
             if user_friendly_log:
-                log.append(user_friendly_log) # It's already formatted with newlines
+                log.append(user_friendly_log)
                 yield "\n".join(log)
 
             if metadata:
-                for col in enriched_cols:
-                    df.loc[index, col] = getattr(metadata, col)
-                # No need for a separate success message, it's in the log now
+                # --- THIS IS THE CORRECTED BLOCK ---
+                # Create a dictionary of the new data
+                update_data = {
+                    'title': metadata.title,
+                    'authors': metadata.authors,
+                    'publication_year': metadata.publication_year,
+                    'genre': metadata.genre,
+                    'goodreads_rating': metadata.goodreads_rating,
+                    'review_summary': metadata.review_summary,
+                    'series_info': metadata.series_info.model_dump() if metadata.series_info else None
+                }
+                
+                # Get the column names in the correct order
+                columns_to_update = list(update_data.keys())
+                # Get the values in the same order
+                values_to_update = list(update_data.values())
+                
+                # Update the entire row at once for stability
+                df.loc[idx, columns_to_update] = values_to_update
+                # --- END OF CORRECTION ---
             else:
-                # Failure message is already in the user_friendly_log
                 log.append(f"   Raw output for debugging: `{raw_result}`")
 
             yield "\n".join(log)
@@ -76,11 +90,29 @@ def process_library(folder_path: str):
             yield "\n".join(log)
             time.sleep(1)
 
+
     # === PHASE 3: REPORTING ===
     log.append("\n📊 **Phase 3: Generating Excel report...**")
     yield "\n".join(log)
     report_path = Path(folder_path) / "AI_Library_Report.xlsx"
-    # Define the exact columns and their order for the report
+    
+    # Create a copy for reporting to avoid changing the original df
+    report_df = df.copy()
+
+    # --- Format columns for human-readable output ---
+    
+    # Format 'authors' list into a single string: "Author A, Author B"
+    report_df['authors'] = report_df['authors'].apply(
+        lambda authors: ', '.join(authors) if isinstance(authors, list) else ''
+    )
+
+    # --- THIS IS THE MODIFIED PART ---
+    # Format 'series_info' dict to only use the series name
+    report_df['series_info'] = report_df['series_info'].apply(
+        lambda info: info.get('series_name', '') if isinstance(info, dict) else ''
+    )
+
+    # Define the exact columns for the final report
     columns_for_report = [
         'title', 
         'authors', 
@@ -89,17 +121,14 @@ def process_library(folder_path: str):
         'goodreads_rating', 
         'review_summary', 
         'series_info',
-        'filename' # Keep original filename for reference
+        'filename'
     ]
     
-    # Create a new DataFrame with only these columns
-    report_df = df[columns_for_report]
+    # Save the formatted DataFrame to Excel
+    report_df[columns_for_report].to_excel(report_path, index=False)
     
-    # Save the new, clean DataFrame to Excel
-    report_df.to_excel(report_path, index=False)
     log.append(f"   ✅ Report saved to `{report_path}`")
     yield "\n".join(log)
-    
     # === PHASE 4: INTELLIGENT FILE REORGANIZATION ===
     log.append("\n🗂️ **Phase 4: Organizing files into 'THE LIST' directory...**")
     yield "\n".join(log)
