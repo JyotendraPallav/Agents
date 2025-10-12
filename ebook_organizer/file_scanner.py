@@ -21,7 +21,7 @@ def find_ebooks(source_folder: str) -> pd.DataFrame:
         raise ValueError(f"Error: The provided path '{source_folder}' is not a valid directory.")
 
     # Define the file extensions we are looking for
-    supported_extensions = ['.epub', '.pdf']
+    supported_extensions = ['.epub','.EPUB', '.pdf']
     
     # Use rglob for recursive search and create a list of Path objects
     ebook_files = [

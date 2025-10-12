@@ -1,13 +1,14 @@
 import gradio as gr
 import pandas as pd
 import time
+import os
 from pathlib import Path
 
 # Import our custom modules
 from file_scanner import find_ebooks
 from ai_agents import get_book_metadata
 from file_organizer import reorganize_library
-from ebook_organizer.data_models import BookMetadata
+from data_models import BookMetadata
 
 # --- Main Processing Function ---
 def process_library(folder_path: str):

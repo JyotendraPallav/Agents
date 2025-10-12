@@ -4,12 +4,15 @@ from crewai import Agent, Task, Crew
 # from crewai_tools import DuckDuckGoSearchRunTool
 from langchain_community.tools import DuckDuckGoSearchRun	
 from pydantic import ValidationError
+from crewai_tools import SerperDevTool
+import io
+import contextlib
 
 # Import our Pydantic model
 from data_models import BookMetadata
 
 # Initialize the search tool
-search_tool = DuckDuckGoSearchRun()
+search_tool = SerperDevTool()
 
 # 1. Define the Researcher Agent
 researcher_agent = Agent(
@@ -47,40 +50,52 @@ def create_research_task(filename: str) -> Task:
     )
 
 # 3. Create a function to run the crew and validate the output
-def get_book_metadata(filename: str) -> (BookMetadata, str):
+def get_book_metadata(filename: str) -> (BookMetadata, str, str):
     """
     Runs the CrewAI agent to get metadata for a book and validates the output.
-
-    Args:
-        filename: The filename of the book to research.
-
-    Returns:
-        A tuple containing the validated BookMetadata object and the raw JSON string.
-        If validation fails, returns (None, raw_string).
+    ...
     """
-    # Create the crew with a specific task for this filename
     book_crew = Crew(
         agents=[researcher_agent],
         tasks=[create_research_task(filename)],
-        verbose=2
+        verbose=True
     )
     
-    # Kick off the crew's work
-    raw_result = book_crew.kickoff()
-
-    # Validate the output using our Pydantic model
     try:
-        # The agent's output is often in a markdown block, so we clean it
+        kickoff_output = book_crew.kickoff()
+    except Exception as e:
+        print(f"CRITICAL ERROR during crew kickoff: {e}")
+
+    
+    kickoff_output = None # Initialize to None
+
+    # log_stream = io.StringIO()
+    # with contextlib.redirect_stdout(log_stream):
+    #     try:
+    #         # Get the full CrewOutput object
+    #         kickoff_output = book_crew.kickoff()
+    #     except Exception as e:
+    #         print(f"CRITICAL ERROR during crew kickoff: {e}")
+
+    # captured_logs = log_stream.getvalue()
+    # print(captured_logs) 
+    # Extract the raw string from the output object IF it exists
+    raw_result = kickoff_output.raw if kickoff_output else ""
+    
+
+
+    try:
+        # The rest of the function now works with the extracted raw_result string
         if "```json" in raw_result:
             json_str = raw_result.split("```json\n")[1].split("```")[0]
         else:
             json_str = raw_result
         
         metadata = BookMetadata.model_validate_json(json_str)
-        return metadata, json_str
+        return metadata, json_str, captured_logs
     except (ValidationError, json.JSONDecodeError) as e:
         print(f"Pydantic Validation Error for {filename}: {e}\nRaw output: {raw_result}")
-        return None, raw_result
+        return None, raw_result, captured_logs
     except Exception as e:
         print(f"An unexpected error occurred during metadata processing for {filename}: {e}")
-        return None, raw_result
+        return None, raw_result, captured_logs
