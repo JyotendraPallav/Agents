@@ -1,14 +1,14 @@
 import gradio as gr
 import pandas as pd
 import time
-import os
 from pathlib import Path
+import os  # <-- ADD THIS IMPORT
 
 # Import our custom modules
 from file_scanner import find_ebooks
 from ai_agents import get_book_metadata
 from file_organizer import reorganize_library
-from data_models import BookMetadata
+from data_models import BookMetadata  # <-- FIX THE IMPORT PATH HERE
 
 # --- Main Processing Function ---
 def process_library(folder_path: str):
@@ -40,7 +40,6 @@ def process_library(folder_path: str):
     # Initialize columns for enriched data
     enriched_cols = list(BookMetadata.model_fields.keys())
     for col in enriched_cols:
-        # Use object type to allow storing dicts/lists for series_info/authors
         df[col] = pd.Series(dtype='object') 
 
     # === PHASE 2: AI-POWERED METADATA ENRICHMENT ===
@@ -54,10 +53,15 @@ def process_library(folder_path: str):
         yield "\n".join(log)
 
         try:
-            metadata, raw_result = get_book_metadata(filename)
+            # CORRECTLY UNPACK THE 3 RETURN VALUES
+            metadata, raw_result, crew_logs = get_book_metadata(filename)
             
+            # Display the captured logs in the UI
+            if crew_logs:
+                log.append(f"🕵️‍♂️ **CrewAI Trace:**\n```\n{crew_logs}\n```")
+                yield "\n".join(log)
+
             if metadata:
-                # Update DataFrame with validated data
                 for col in enriched_cols:
                     df.loc[index, col] = getattr(metadata, col)
                 log.append(f"   👍 Success: Found metadata for '{metadata.title}'")
@@ -70,7 +74,7 @@ def process_library(folder_path: str):
         except Exception as e:
             log.append(f"   ❌ An unexpected error occurred for {filename}: {e}. Skipping.")
             yield "\n".join(log)
-            time.sleep(1) # Brief pause after an error
+            time.sleep(1)
 
     # === PHASE 3: REPORTING ===
     log.append("\n📊 **Phase 3: Generating Excel report...**")
@@ -122,7 +126,6 @@ with gr.Blocks(theme=gr.themes.Soft(primary_hue="blue")) as demo:
 # --- Main Execution Block ---
 if __name__ == "__main__":
     from dotenv import load_dotenv
-    # Load environment variables from .env file
     load_dotenv()
     if not os.getenv("OPENAI_API_KEY"):
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

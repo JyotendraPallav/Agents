@@ -50,10 +50,68 @@ def create_research_task(filename: str) -> Task:
     )
 
 # 3. Create a function to run the crew and validate the output
+# def get_book_metadata(filename: str) -> (BookMetadata, str, str):
+#     """
+#     Runs the CrewAI agent to get metadata for a book and validates the output.
+#     ...
+#     """
+#     book_crew = Crew(
+#         agents=[researcher_agent],
+#         tasks=[create_research_task(filename)],
+#         verbose=True
+#     )
+    
+#     try:
+#         kickoff_output = book_crew.kickoff()
+#     except Exception as e:
+#         print(f"CRITICAL ERROR during crew kickoff: {e}")
+
+    
+#     kickoff_output = None # Initialize to None
+
+#     # log_stream = io.StringIO()
+#     # with contextlib.redirect_stdout(log_stream):
+#     #     try:
+#     #         # Get the full CrewOutput object
+#     #         kickoff_output = book_crew.kickoff()
+#     #     except Exception as e:
+#     #         print(f"CRITICAL ERROR during crew kickoff: {e}")
+
+#     # captured_logs = log_stream.getvalue()
+#     # print(captured_logs) 
+#     # Extract the raw string from the output object IF it exists
+#     raw_result = kickoff_output.raw if kickoff_output else ""
+    
+
+
+#     try:
+#         # The rest of the function now works with the extracted raw_result string
+#         if "```json" in raw_result:
+#             json_str = raw_result.split("```json\n")[1].split("```")[0]
+#         else:
+#             json_str = raw_result
+        
+#         metadata = BookMetadata.model_validate_json(json_str)
+#         return metadata, json_str, captured_logs
+#     except (ValidationError, json.JSONDecodeError) as e:
+#         print(f"Pydantic Validation Error for {filename}: {e}\nRaw output: {raw_result}")
+#         return None, raw_result, captured_logs
+#     except Exception as e:
+#         print(f"An unexpected error occurred during metadata processing for {filename}: {e}")
+#         return None, raw_result, captured_logs
+
 def get_book_metadata(filename: str) -> (BookMetadata, str, str):
     """
     Runs the CrewAI agent to get metadata for a book and validates the output.
-    ...
+
+    Args:
+        filename: The filename of the book to research.
+
+    Returns:
+        A tuple containing:
+        - The validated BookMetadata object (or None on failure).
+        - The raw JSON string result from the agent.
+        - The captured logs and traces from the crew's execution.
     """
     book_crew = Crew(
         agents=[researcher_agent],
@@ -61,31 +119,38 @@ def get_book_metadata(filename: str) -> (BookMetadata, str, str):
         verbose=True
     )
     
+    kickoff_output = None
+    captured_logs = ""
+
     try:
-        kickoff_output = book_crew.kickoff()
+        # Create a buffer to capture logs
+        log_stream = io.StringIO()
+        
+        # Redirect stdout to capture the verbose logs from the kickoff
+        with contextlib.redirect_stdout(log_stream):
+            kickoff_output = book_crew.kickoff()
+        
+        # Get the logs and print them to the terminal for debugging
+        captured_logs = log_stream.getvalue()
+        print(captured_logs)
+
     except Exception as e:
-        print(f"CRITICAL ERROR during crew kickoff: {e}")
+        # This will now catch the REAL error from kickoff()
+        print("="*80)
+        print(f"A CRITICAL ERROR occurred during crew.kickoff() for file: {filename}")
+        print(f"ERROR: {e}")
+        print("="*80)
+        # Return Nones and the captured logs (which might contain clues)
+        return None, "", captured_logs
 
-    
-    kickoff_output = None # Initialize to None
-
-    # log_stream = io.StringIO()
-    # with contextlib.redirect_stdout(log_stream):
-    #     try:
-    #         # Get the full CrewOutput object
-    #         kickoff_output = book_crew.kickoff()
-    #     except Exception as e:
-    #         print(f"CRITICAL ERROR during crew kickoff: {e}")
-
-    # captured_logs = log_stream.getvalue()
-    # print(captured_logs) 
-    # Extract the raw string from the output object IF it exists
+    # Proceed only if kickoff was successful
     raw_result = kickoff_output.raw if kickoff_output else ""
-    
 
+    if not raw_result:
+        print(f"WARNING: Crew kickoff for {filename} produced no output.")
+        return None, "", captured_logs
 
     try:
-        # The rest of the function now works with the extracted raw_result string
         if "```json" in raw_result:
             json_str = raw_result.split("```json\n")[1].split("```")[0]
         else:
@@ -93,6 +158,7 @@ def get_book_metadata(filename: str) -> (BookMetadata, str, str):
         
         metadata = BookMetadata.model_validate_json(json_str)
         return metadata, json_str, captured_logs
+        
     except (ValidationError, json.JSONDecodeError) as e:
         print(f"Pydantic Validation Error for {filename}: {e}\nRaw output: {raw_result}")
         return None, raw_result, captured_logs
