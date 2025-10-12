@@ -60,7 +60,8 @@ def reorganize_library(df: pd.DataFrame, source_folder: str):
             if original_file.exists():
                 destination_file = target_path / new_filename
                 shutil.move(original_file, destination_file)
-                yield f"✅ Moved '{row['filename']}' to '{destination_file.relative_to(base_path)}'"
+                # yield f"✅ Moved '{row['filename']}' to '{destination_file.relative_to(base_path)}'"
+                yield f"✅ Moved '{row['filename']}' /n'"
             else:
                 yield f"⚠️ File '{row['filename']}' not found at original path. It might have been moved already."
             

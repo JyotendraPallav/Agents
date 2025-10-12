@@ -52,6 +52,9 @@ def process_library(folder_path: str):
         log.append(f"\n({idx + 1}/{total_books}) Researching: **{filename}**")
         yield "\n".join(log)
 
+        # app.py -> inside process_library()
+
+# ... (inside the for loop of Phase 2)
         try:
             metadata, raw_result, user_friendly_log = get_book_metadata(filename)
             
@@ -60,26 +63,21 @@ def process_library(folder_path: str):
                 yield "\n".join(log)
 
             if metadata:
-                # --- THIS IS THE CORRECTED BLOCK ---
-                # Create a dictionary of the new data
-                update_data = {
-                    'title': metadata.title,
-                    'authors': metadata.authors,
-                    'publication_year': metadata.publication_year,
-                    'genre': metadata.genre,
-                    'goodreads_rating': metadata.goodreads_rating,
-                    'review_summary': metadata.review_summary,
-                    'series_info': metadata.series_info.model_dump() if metadata.series_info else None
-                }
+                # --- THIS IS THE DEFINITIVE FIX ---
+                # Set each value individually to avoid shape errors with complex objects
+                df.at[idx, 'title'] = metadata.title
+                df.at[idx, 'authors'] = metadata.authors
+                df.at[idx, 'publication_year'] = metadata.publication_year
+                df.at[idx, 'genre'] = metadata.genre
+                df.at[idx, 'goodreads_rating'] = metadata.goodreads_rating
+                df.at[idx, 'review_summary'] = metadata.review_summary
                 
-                # Get the column names in the correct order
-                columns_to_update = list(update_data.keys())
-                # Get the values in the same order
-                values_to_update = list(update_data.values())
-                
-                # Update the entire row at once for stability
-                df.loc[idx, columns_to_update] = values_to_update
-                # --- END OF CORRECTION ---
+                # Convert Pydantic model to a dict for the DataFrame cell
+                if metadata.series_info:
+                    df.at[idx, 'series_info'] = metadata.series_info.model_dump()
+                else:
+                    df.at[idx, 'series_info'] = None
+                # --- END OF FIX ---
             else:
                 log.append(f"   Raw output for debugging: `{raw_result}`")
 
@@ -120,8 +118,8 @@ def process_library(folder_path: str):
         'genre', 
         'goodreads_rating', 
         'review_summary', 
-        'series_info',
-        'filename'
+        'series_info'
+        # 'filename'
     ]
     
     # Save the formatted DataFrame to Excel
