@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from crewai_tools import SerperDevTool
 import io
 import contextlib
+import re
 
 # Import our Pydantic model
 from data_models import BookMetadata
@@ -151,16 +152,25 @@ def get_book_metadata(filename: str) -> (BookMetadata, str, str):
         return None, "", captured_logs
 
     try:
-        if "```json" in raw_result:
-            json_str = raw_result.split("```json\n")[1].split("```")[0]
+        # --- NEW ROBUST JSON EXTRACTION ---
+        # Find the starting '{' of the JSON object
+        json_start_index = raw_result.find('{')
+        # Find the closing '}' of the JSON object
+        json_end_index = raw_result.rfind('}') + 1
+
+        if json_start_index != -1 and json_end_index != -1:
+            # Slice the string to get only the JSON part
+            json_str = raw_result[json_start_index:json_end_index]
+            
+            # Now, validate the clean JSON string
+            metadata = BookMetadata.model_validate_json(json_str)
+            return metadata, json_str, captured_logs
         else:
-            json_str = raw_result
+            # If no JSON object is found, raise an error
+            raise ValueError("No JSON object found in the agent's output.")
         
-        metadata = BookMetadata.model_validate_json(json_str)
-        return metadata, json_str, captured_logs
-        
-    except (ValidationError, json.JSONDecodeError) as e:
-        print(f"Pydantic Validation Error for {filename}: {e}\nRaw output: {raw_result}")
+    except (ValidationError, json.JSONDecodeError, ValueError) as e:
+        print(f"Pydantic Validation or Parsing Error for {filename}: {e}\nRaw output: {raw_result}")
         return None, raw_result, captured_logs
     except Exception as e:
         print(f"An unexpected error occurred during metadata processing for {filename}: {e}")
