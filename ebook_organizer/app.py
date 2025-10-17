@@ -22,7 +22,12 @@ def process_library(folder_path: str):
 
     log = []
     
+    # --- NEW: Initialize total token and cost counters ---
+    total_tokens_used = 0
+    total_cost_incurred = 0.0
+    
     # === PHASE 1: FILE DISCOVERY ===
+    # ... (this part is unchanged) ...
     log.append("🔎 **Phase 1: Scanning for e-books...**")
     yield "\n".join(log)
     try:
@@ -47,51 +52,27 @@ def process_library(folder_path: str):
     yield "\n".join(log)
     
     total_books = len(df)
+    # for index, row in df.iterrows():
+    #     filename = row['filename']
+    #     log.append(f"\n({index + 1}/{total_books}) Researching: **{filename}**")
+    #     yield "\n".join(log)
     for idx, (index, row) in enumerate(df.iterrows()):
         filename = row['filename']
         log.append(f"\n({idx + 1}/{total_books}) Researching: **{filename}**")
         yield "\n".join(log)
 
-        # app.py -> inside process_library()
-
-# ... (inside the for loop of Phase 2)
-        # try:
-        #     metadata, raw_result, user_friendly_log = get_book_metadata(filename)
-            
-        #     if user_friendly_log:
-        #         log.append(user_friendly_log)
-        #         yield "\n".join(log)
-
-        #     if metadata:
-        #         # --- THIS IS THE DEFINITIVE FIX ---
-        #         # Set each value individually to avoid shape errors with complex objects
-                # df.at[idx, 'title'] = metadata.title
-                # df.at[idx, 'authors'] = metadata.authors
-                # df.at[idx, 'publication_year'] = metadata.publication_year
-                # df.at[idx, 'genre'] = metadata.genre
-                # df.at[idx, 'goodreads_rating'] = metadata.goodreads_rating
-                # df.at[idx, 'review_summary'] = metadata.review_summary
-                
-        #         # Convert Pydantic model to a dict for the DataFrame cell
-        #         if metadata.series_info:
-        #             df.at[idx, 'series_info'] = metadata.series_info.model_dump()
-        #         else:
-        #             df.at[idx, 'series_info'] = None
-        #         # --- END OF FIX ---
-        #     else:
-        #         log.append(f"   Raw output for debugging: `{raw_result}`")
-
-        #     yield "\n".join(log)
-
-        # except Exception as e:
-        #     log.append(f"   ❌ An unexpected error occurred: {e}. Skipping.")
-        #     yield "\n".join(log)
-        #     time.sleep(1)
         try:
-            # Unpack the new 2-item return value
-            metadata, raw_result = get_book_metadata(filename)
+            # --- MODIFIED: Unpack the new 3-item return value ---
+            metadata, raw_result, token_usage = get_book_metadata(filename)
             
-            # Provide simple status messages directly to the Gradio UI
+            # --- NEW: Update and display token usage ---
+            if token_usage:
+                total_tokens_used += token_usage.get("total_tokens", 0)
+                total_cost_incurred += token_usage.get("total_cost", 0.0)
+                log.append(f"    Tokens Used: {token_usage.get('total_tokens', 0)}")
+                log.append(f"   💰 **Total Cost So Far: ${total_cost_incurred:.4f}**")
+                yield "\n".join(log)
+
             if metadata:
                 log.append(f"   👍 Success: Extracted '{metadata.title}'")
                 
@@ -109,7 +90,6 @@ def process_library(folder_path: str):
                     df.at[idx, 'series_info'] = None
             else:
                 log.append(f"   ⚠️ Agent failed to return valid metadata for {filename}.")
-                log.append(f"   Raw output for debugging: `{raw_result}`")
 
             yield "\n".join(log)
 
@@ -117,6 +97,11 @@ def process_library(folder_path: str):
             log.append(f"   ❌ An unexpected error occurred: {e}. Skipping.")
             yield "\n".join(log)
             time.sleep(1)
+
+    # Final summary of token usage
+    log.append("\n---")
+    log.append(f"**Total Tokens Used for the Session:** {total_tokens_used}")
+    log.append(f"**Estimated Total Cost:** ${total_cost_incurred:.2f}")
 
 
     # === PHASE 3: REPORTING ===
@@ -147,8 +132,8 @@ def process_library(folder_path: str):
         'publication_year', 
         'genre', 
         'goodreads_rating', 
-        'review_summary', 
-        'series_info'
+        'series_info',
+        'review_summary' 
         # 'filename'
     ]
     
@@ -157,18 +142,19 @@ def process_library(folder_path: str):
     
     log.append(f"   ✅ Report saved to `{report_path}`")
     yield "\n".join(log)
-    # === PHASE 4: INTELLIGENT FILE REORGANIZATION ===
-    log.append("\n🗂️ **Phase 4: Organizing files into 'THE LIST' directory...**")
-    yield "\n".join(log)
     
-    organizer_generator = reorganize_library(df, folder_path)
-    for org_log in organizer_generator:
-        log.append(f"   {org_log}")
-        yield "\n".join(log)
+    # # === PHASE 4: INTELLIGENT FILE REORGANIZATION ===
+    # log.append("\n🗂️ **Phase 4: Organizing files into 'THE LIST' directory...**")
+    # yield "\n".join(log)
+    
+    # organizer_generator = reorganize_library(df, folder_path)
+    # for org_log in organizer_generator:
+    #     log.append(f"   {org_log}")
+    #     yield "\n".join(log)
 
-    # === PHASE 5: USER NOTIFICATION ===
-    log.append("\n🎉 **Success! Your library has been organized.**")
-    yield "\n".join(log)
+    # # === PHASE 5: USER NOTIFICATION ===
+    # log.append("\n🎉 **Success! Your library has been organized.**")
+    # yield "\n".join(log)
 
 
 # --- Gradio User Interface ---
