@@ -10,7 +10,7 @@ DATABASE_URL = "postgresql://postgres:053122@localhost:5432/libris_ai"
 print(f"Connecting to database at: {DATABASE_URL}")
 engine = create_engine(DATABASE_URL)
 app = FastAPI()
-
+print("FastAPI app initialized.")
 # --- CORS Middleware ---
 # This is a crucial security step. It tells your backend to
 # trust the "frontend" (which will run on http://localhost:3000)
@@ -22,7 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+print("CORS middleware added.")
 @app.get("/api/books")
 def get_all_books():
     """
