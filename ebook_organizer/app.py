@@ -143,18 +143,18 @@ def process_library(folder_path: str):
     log.append(f"   ✅ Report saved to `{report_path}`")
     yield "\n".join(log)
     
-    # # === PHASE 4: INTELLIGENT FILE REORGANIZATION ===
-    # log.append("\n🗂️ **Phase 4: Organizing files into 'THE LIST' directory...**")
-    # yield "\n".join(log)
+    # === PHASE 4: INTELLIGENT FILE REORGANIZATION ===
+    log.append("\n🗂️ **Phase 4: Organizing files into 'THE LIST' directory...**")
+    yield "\n".join(log)
     
-    # organizer_generator = reorganize_library(df, folder_path)
-    # for org_log in organizer_generator:
-    #     log.append(f"   {org_log}")
-    #     yield "\n".join(log)
+    organizer_generator = reorganize_library(df, folder_path)
+    for org_log in organizer_generator:
+        log.append(f"   {org_log}")
+        yield "\n".join(log)
 
-    # # === PHASE 5: USER NOTIFICATION ===
-    # log.append("\n🎉 **Success! Your library has been organized.**")
-    # yield "\n".join(log)
+    # === PHASE 5: USER NOTIFICATION ===
+    log.append("\n🎉 **Success! Your library has been organized.**")
+    yield "\n".join(log)
 
 
 # --- Gradio User Interface ---
