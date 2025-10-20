@@ -15,3 +15,5 @@ class BookMetadata(BaseModel):
     goodreads_rating: Optional[float] = Field(None, description="The average Goodreads rating.")
     review_summary: Optional[str] = Field(None, description="A brief, one or two-sentence summary of the general review sentiment.")
     series_info: Optional[SeriesInfo] = Field(None, description="Information about the series, if applicable.")
+    # image_url: Optional[str] = Field(None, description="A high-quality book cover image URL.")
+    isbn: Optional[str] = Field(None, description="The 13-digit ISBN of the book.")

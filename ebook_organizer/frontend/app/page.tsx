@@ -39,7 +39,7 @@ export default async function HomePage() {
       <div className="container mx-auto p-4 sm:p-8">
         <header className="text-center mb-10">
           <h1 className="text-5xl font-bold text-gray-800">LibrisAI</h1>
-          <p className="text-lg text-gray-500 mt-2">Your AI-Curated Digital Bookshelf</p>
+          <p className="text-lg text-gray-500 mt-2">Jyotendra's Digital Bookshelf - Created with AI</p>
         </header>
 
         {/* The grid that holds all our book cards */}
@@ -49,10 +49,23 @@ export default async function HomePage() {
           {books.map((book) => (
             <div key={book.id} className="bg-white border rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-transform duration-300">
 
-              {/* Image Placeholder - we will fix this in the next phase! */}
-              <div className="h-64 bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-400 text-sm">No Cover Image</span>
+              {/* --- THIS IS THE NEW IMAGE CODE --- */}
+              <div className="h-80 w-full relative">
+                {book.image_url ? (
+                  // If we have an image_url, display the image
+                  <img
+                    src={book.image_url}
+                    alt={book.title}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  // If image_url is null, show the placeholder
+                  <div className="h-full w-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400 text-sm">No Cover Image</span>
+                  </div>
+                )}
               </div>
+                {/* --- END OF NEW CODE --- */}
 
               {/* Book Info Area */}
               <div className="p-4">
